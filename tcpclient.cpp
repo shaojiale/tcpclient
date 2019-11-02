@@ -4,6 +4,36 @@
 #include <iostream>
 #pragma comment(lib, "ws2_32.lib")  //加载 ws2_32.dll
 
+enum CMD
+{
+	CMD_LOGIN,
+	CMD_LOGOUT,
+	CMD_ERROR
+};
+//消息头
+struct Dataheader {
+	CMD cmd;
+	int dataLength;
+};
+
+struct Login {
+	char userName[32];
+	char passWord[32];
+};
+
+struct LoginResult
+{
+	int result;
+};
+
+struct Logout {
+	char userName[32];
+};
+
+struct LogoutResult
+{
+	int result;
+};
 int main()
 {
 	//初始化DLL
@@ -19,7 +49,7 @@ int main()
 	//IPv4 地址、面向连接的数据传输方式、TCP 传输协议
 	SOCKET sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-	//向服务器发起请求,将创建的套接字与IP地址、端口 3000 绑定：
+	//向服务器发起请求,将创建的套接字与服务器IP地址、端口 3000 绑定：
 	sockaddr_in sockAddr;
 	memset(&sockAddr, 0, sizeof(sockAddr));
 	sockAddr.sin_family = PF_INET;
@@ -43,26 +73,45 @@ int main()
 	while (true)
 	{
 		char input[100] = {};
-		char recvBuf[100] = { 0 };
-		std::cin >> input;
-
-		if (0 == strcmp(input, "XXX"))
+		scanf("%s", input);
+		if (0 == strcmp(input, "exit"))
 		{
-		}
-		else if (0 == strcmp(input, "exit"))
-		{
-			std::cout << "客户端已退出" << std::endl;
+			printf("客户端已退出！\n");
 			break;
+		}
+		else if(0 == strcmp(input, "login"))
+		{
+			Login login = { "xiaoming" ,"123456"};
+			Dataheader hd = { CMD_LOGIN,sizeof(login) };
+			//向服务器发送消息
+			send(sock, (const char*)&hd, sizeof(hd), 0);
+			send(sock, (const char*)&login, sizeof(login), 0);
+			//接收服务器返回消息
+			Dataheader rthd = { };
+			LoginResult loginret = { };
+			recv(sock, (char*)&rthd, sizeof(rthd), 0);
+			recv(sock, (char*)&loginret, sizeof(loginret), 0);
+			printf("LoginResult：%d\n", loginret.result);
+		}
+		else if (0 == strcmp(input, "logout"))
+		{
+			Logout logout = {"xiaoming"};
+			Dataheader hd = { CMD_LOGOUT,sizeof(logout) };
+			//向服务器发送消息
+			send(sock, (const char*)&hd, sizeof(hd), 0);
+			send(sock, (const char*)&logout, sizeof(logout), 0);
+			//接收服务器返回消息
+			Dataheader rthd = { };
+			LogoutResult logoutret = { };
+			recv(sock, (char*)&rthd, sizeof(rthd), 0);
+			recv(sock, (char*)&logoutret, sizeof(logoutret), 0);
+			printf("LoginResult：%d\n", logoutret.result);
 		}
 		else
 		{
-			send(sock, input, sizeof(input) + 1, 0);//发送msgbuf中的内容。如果长度确定则不应该每次都重新计算
-			recv(sock, recvBuf, 100, 0);
-			std::cout << recvBuf << std::endl;
+			printf("请重新输入命令！\n");
 		}
 	}
-	
-
 	closesocket(sock);
 	WSACleanup();
 	
