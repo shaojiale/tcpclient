@@ -91,6 +91,8 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>4996;6031;4244;26495;26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -102,6 +104,8 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>4996;6031;4244;26495;26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -115,6 +119,8 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>4996;6031;4244;26495;26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -130,6 +136,8 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>4996;6031;4244;26495;26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -142,6 +150,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MessageHeader.hpp" />
+    <ClInclude Include="tcpclient.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
