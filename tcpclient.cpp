@@ -1,5 +1,6 @@
 #include "tcpclient.hpp"
 
+#include <thread>
 
 void cmdthread(TcpClient* clientSocket)
 {
@@ -38,13 +39,23 @@ int main()
 {
 	TcpClient clientSocket;
 	clientSocket.InitSocket();
-	clientSocket.Connect((char*)"192.168.0.106",3000);
+	clientSocket.Connect((char*)"127.0.0.1",45689);
 	//启动cmd输入线程
 	std::thread t1(cmdthread,&clientSocket);
 	t1.detach();
-	while (clientSocket.isRun())
+
+	Login login;
+	strcpy(login.userName, "xiaoming");
+	strcpy(login.passWord, "xiaoming");
+
+	while (true)
 	{
-		clientSocket.OnRun();
+		if (false == clientSocket.OnRun())
+		{
+			break;
+		}
+		/*clientSocket.SendData(&login);*/
 	}
+	clientSocket.Close();
 	return 0;
 }

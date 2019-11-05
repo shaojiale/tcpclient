@@ -1,3 +1,5 @@
+# tcpclient V1.4
+# 服务器退出后自动退出
 # tcpclient V1.3
 # 封装成类
 # tcpclient V1.2 

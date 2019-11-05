@@ -1,10 +1,16 @@
-#ifndef _TCPCLIENT_HPP
-#define _TCPCLIENT_HPP
-#include <stdio.h>
+#ifndef _TCPSERVER_HPP
+#define _TCPSERVER_HPP
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#include<windows.h>
 #include <WinSock2.h>
-#include <thread>
+#pragma comment(lib, "Ws2_32.lib ")
+#endif  //end define _win32
+
+#include <stdio.h>
 #include "MessageHeader.hpp"
-#pragma comment(lib, "ws2_32.lib")  //加载 ws2_32.dll
 class TcpClient
 {
 	SOCKET _sock;
@@ -18,14 +24,13 @@ public:
 		Close();
 	}
 	//初始化socket
-	int InitSocket()
+	void InitSocket()
 	{
 		//启动WinSocket2.x环境\
 		//主版本号(低字节)为2，副版本号为2，返回 0x0202
 		WORD sockVersion = MAKEWORD(2, 2);
 		WSADATA wsaData;
-		if (WSAStartup(sockVersion, &wsaData) != 0)
-			return 0;
+		WSAStartup(sockVersion, &wsaData);
 		//建立一个socket
 		if (INVALID_SOCKET != _sock)
 		{
@@ -49,21 +54,12 @@ public:
 		{
 			InitSocket();
 		}
-		//向服务器发起请求,将创建的套接字与服务器IP地址、端口 3000 绑定：
-		sockaddr_in sockAddr = {};
-		sockAddr.sin_family = AF_INET;
-
-		//32位IP地址,s_addr 是一个整数(unsigned long)，而IP地址是一个字符串，
-		//所以需要 inet_addr() 函数进行转换
-		sockAddr.sin_addr.s_addr = inet_addr(ip);
-
-		//16位的端口号,端口号需要用 htons() 函数转换,0~1023 的端口一般由系统分配给特定的服务程序，
-		//尽量在 1024~65536 之间分配端口号。
-		sockAddr.sin_port = htons(port);
-
-		//强制类型转换,服务器端要用 bind() 函数将套接字与特定的IP地址和端口绑定起来，
-		//只有这样，流经该IP地址和端口的数据才能交给套接字处理
-		if (SOCKET_ERROR == connect(_sock, (SOCKADDR*)&sockAddr, sizeof(SOCKADDR)))
+		sockaddr_in _sin = {};
+		_sin.sin_family = AF_INET;
+		_sin.sin_addr.S_un.S_addr = inet_addr(ip);
+		_sin.sin_port = htons(port);
+		int ret = connect(_sock, (sockaddr*)&_sin, sizeof(sockaddr_in));
+		if (SOCKET_ERROR == ret)
 		{
 			printf("连接失败\n");
 		}
@@ -71,7 +67,7 @@ public:
 		{
 			printf("成功连接到服务器！\n");
 		}
-		return 0;
+		return ret;
 	}
 	//关闭socket
 	void Close()
@@ -80,8 +76,8 @@ public:
 		{
 			closesocket(_sock);
 			WSACleanup();
+			_sock = INVALID_SOCKET;
 		}
-		_sock = INVALID_SOCKET;
 	}
 	//接受数据 处理粘包拆包
 	int RecvData(SOCKET _sock)
