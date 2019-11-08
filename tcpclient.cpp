@@ -40,9 +40,9 @@ int main()
 	TcpClient clientSocket;
 	clientSocket.InitSocket();
 	clientSocket.Connect((char*)"127.0.0.1",45689);
-	//启动cmd输入线程
-	std::thread t1(cmdthread,&clientSocket);
-	t1.detach();
+	////启动cmd输入线程
+	//std::thread t1(cmdthread,&clientSocket);
+	//t1.detach();
 
 	Login login;
 	strcpy(login.userName, "xiaoming");
@@ -54,7 +54,7 @@ int main()
 		{
 			break;
 		}
-		/*clientSocket.SendData(&login);*/
+		clientSocket.SendData(&login);
 	}
 	clientSocket.Close();
 	return 0;

@@ -1,3 +1,5 @@
+# tcpclient V1.5
+# 加入接受缓冲区和消息缓冲区测试性能达到300Mbps
 # tcpclient V1.4
 # 服务器退出后自动退出
 # tcpclient V1.3

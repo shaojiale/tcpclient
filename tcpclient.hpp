@@ -79,20 +79,47 @@ public:
 			_sock = INVALID_SOCKET;
 		}
 	}
+	//缓冲区最小单元大小
+#define RECV_BUFF_SIZE 10240
+	//接受缓冲区
+	char _szRecv[RECV_BUFF_SIZE] = {};
+	//第二缓冲区 消息缓冲区
+	char _szMsgBuf[RECV_BUFF_SIZE * 10] = {};
+	int _lastPos = 0;
 	//接受数据 处理粘包拆包
 	int RecvData(SOCKET _sock)
 	{
 		//接受缓存
-		char szRecv[4096] = {};
-		int cnt = (int)recv(_sock, szRecv, sizeof(Dataheader), 0);
-		Dataheader* header = (Dataheader*)szRecv;
-		if (cnt <= 0)
+		int nLen = (int)recv(_sock, _szRecv, RECV_BUFF_SIZE, 0);
+		if (nLen <= 0)
 		{
-			printf("服务器已经退出，任务结束\n");
-			return -1;//跳出接收循环
+				printf("服务器已经退出，任务结束\n");
+				return -1;//跳出接收循环
 		}
-		recv(_sock, szRecv + sizeof(header), header->dataLength - sizeof(header), 0);
-		OnNetMsg(header);
+		//将收取到的数据拷贝到消息缓冲区
+		memcpy(_szMsgBuf+ _lastPos, _szRecv, nLen);
+		_lastPos += nLen;
+		while (_lastPos >= sizeof(Dataheader))
+		{
+			//这时候就知道消息的长度
+			Dataheader* header = (Dataheader*)_szRecv;
+			if (_lastPos >= header->dataLength)
+			{
+				//剩余未处理消息缓冲长度
+				int nSize = _lastPos - header->dataLength;
+				//处理消息
+				OnNetMsg(header);
+				//将未处理消息前移
+				memcpy(_szMsgBuf, _szMsgBuf + header->dataLength, nSize);
+				//新的未处理消息尾部
+				_lastPos = nSize;
+			}
+			else
+			{
+				//没有完整消息了
+				break;
+			}
+		}
 		return 0;
 	}
 	//响应网络消息
@@ -104,22 +131,28 @@ public:
 		case CMD_LOGIN_RESULT:
 		{
 			LoginResult* ret = (LoginResult*)header;
-			printf("收到服务端消息：CMD_LOGIN_RESULT，CMD_LOGIN 数据长度：%d\n", ret->dataLength);
+			//printf("收到服务端消息：CMD_LOGIN_RESULT，CMD_LOGIN 数据长度：%d\n", ret->dataLength);
 			break;
 		}
 		case CMD_LOGOUT_RESULT:
 		{
 			LogoutResult* ret = (LogoutResult*)header;
-			printf("收到服务端消息：CMD_LOGOUT_RESULT，CMD_LOGIN 数据长度：%d\n", ret->dataLength);
+			//printf("收到服务端消息：CMD_LOGOUT_RESULT，CMD_LOGIN 数据长度：%d\n", ret->dataLength);
 			break;
 		}
 		case CMD_NEW_USER_JOIN:
 		{
 			NewUserJoin* ret = (NewUserJoin*)header;
-			printf("收到服务端消息：CMD_NEW_USER_JOIN，CMD_LOGIN 数据长度：%d\n", ret->dataLength);
+			//printf("收到服务端消息：CMD_NEW_USER_JOIN，CMD_LOGIN 数据长度：%d\n", ret->dataLength);
+			break;
+		}
+		case CMD_ERROR:
+		{
+			printf("收到服务端消息:CMD_ERROR,数据长度：%d\n", header->dataLength);
 			break;
 		}
 		default:
+			printf("收到未知服务端消息，数据长度：%d\n", header->dataLength);
 			break;
 		} 
 	}
