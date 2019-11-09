@@ -14,10 +14,12 @@
 class TcpClient
 {
 	SOCKET _sock;
+	int _lastPos;
 public:
 	TcpClient()
 	{
 		_sock = INVALID_SOCKET;
+		_lastPos = 0;
 	}
 	virtual ~TcpClient()
 	{
@@ -85,7 +87,6 @@ public:
 	char _szRecv[RECV_BUFF_SIZE] = {};
 	//第二缓冲区 消息缓冲区
 	char _szMsgBuf[RECV_BUFF_SIZE * 10] = {};
-	int _lastPos = 0;
 	//接受数据 处理粘包拆包
 	int RecvData(SOCKET _sock)
 	{
@@ -102,7 +103,7 @@ public:
 		while (_lastPos >= sizeof(Dataheader))
 		{
 			//这时候就知道消息的长度
-			Dataheader* header = (Dataheader*)_szRecv;
+			Dataheader* header = (Dataheader*)_szMsgBuf;
 			if (_lastPos >= header->dataLength)
 			{
 				//剩余未处理消息缓冲长度
@@ -130,19 +131,19 @@ public:
 		{
 		case CMD_LOGIN_RESULT:
 		{
-			LoginResult* ret = (LoginResult*)header;
+			//LoginResult* ret = (LoginResult*)header;
 			//printf("收到服务端消息：CMD_LOGIN_RESULT，CMD_LOGIN 数据长度：%d\n", ret->dataLength);
 			break;
 		}
 		case CMD_LOGOUT_RESULT:
 		{
-			LogoutResult* ret = (LogoutResult*)header;
+			//LogoutResult* ret = (LogoutResult*)header;
 			//printf("收到服务端消息：CMD_LOGOUT_RESULT，CMD_LOGIN 数据长度：%d\n", ret->dataLength);
 			break;
 		}
 		case CMD_NEW_USER_JOIN:
 		{
-			NewUserJoin* ret = (NewUserJoin*)header;
+			//NewUserJoin* ret = (NewUserJoin*)header;
 			//printf("收到服务端消息：CMD_NEW_USER_JOIN，CMD_LOGIN 数据长度：%d\n", ret->dataLength);
 			break;
 		}
@@ -166,7 +167,7 @@ public:
 			fd_set fdRead;
 			FD_ZERO(&fdRead);
 			FD_SET(_sock, &fdRead);
-			timeval timeout = { 1,0 };
+			timeval timeout = { 0,0 };
 			int ret = select(_sock + 1, &fdRead, NULL, NULL, &timeout);
 			if (ret < 0)
 			{

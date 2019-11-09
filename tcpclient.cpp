@@ -2,7 +2,8 @@
 
 #include <thread>
 
-void cmdthread(TcpClient* clientSocket)
+bool g_bRun = true;
+void cmdthread()
 {
 	char input[100] = {};
 	while (true)
@@ -10,24 +11,9 @@ void cmdthread(TcpClient* clientSocket)
 		scanf("%s", input);
 		if (0 == strcmp(input, "exit"))
 		{
-			clientSocket->Close();
+			g_bRun = false;
 			printf("客户端已退出！\n");			
 			break;
-		}
-		else if(0 == strcmp(input, "login"))
-		{
-			Login login;
-			strcpy(login.userName, "xiaoming");
-			strcpy(login.passWord, "123456");
-			//向服务器发送消息
-			clientSocket->SendData(&login);
-		}
-		else if (0 == strcmp(input, "logout"))
-		{
-			Logout logout;
-			strcpy(logout.userName, "xiaoming");
-			//向服务器发送消息
-			clientSocket->SendData(&logout);
 		}
 		else
 		{
@@ -37,25 +23,48 @@ void cmdthread(TcpClient* clientSocket)
 }
 int main()
 {
-	TcpClient clientSocket;
-	clientSocket.InitSocket();
-	clientSocket.Connect((char*)"127.0.0.1",45689);
-	////启动cmd输入线程
-	//std::thread t1(cmdthread,&clientSocket);
-	//t1.detach();
+	//启动cmd输入线程
+	std::thread t1(cmdthread);
+	t1.detach();
 
 	Login login;
 	strcpy(login.userName, "xiaoming");
 	strcpy(login.passWord, "xiaoming");
 
+	const int cCount = 100;
+	TcpClient* clients[cCount];
+	int a = sizeof(TcpClient);
+	for (int n = 0; n < cCount; n++)
+	{
+		if (!g_bRun)
+		{
+			return 0;
+		}
+		clients[n] = new TcpClient();
+		clients[n]->InitSocket();
+	}
+	for (int n = 0; n < cCount; n++)
+	{
+		if (!g_bRun)
+		{
+			return 0;
+		}
+		clients[n]->Connect((char*)"192.168.0.106", 1245);
+	}
 	while (true)
 	{
-		if (false == clientSocket.OnRun())
+		for (int n = 0; n < cCount; n++)
 		{
-			break;
+			if (!g_bRun || -1 == clients[n]->SendData(&login))
+			{
+				return 0;
+			}
+			/*clients[n]->OnRun();*/
 		}
-		clientSocket.SendData(&login);
 	}
-	clientSocket.Close();
+	for (int n = 0; n < cCount; n++)
+	{
+		clients[n]->Close();
+	}
 	return 0;
 }
