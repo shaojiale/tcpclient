@@ -21,50 +21,68 @@ void cmdthread()
 		}
 	}
 }
-int main()
-{
-	//启动cmd输入线程
-	std::thread t1(cmdthread);
-	t1.detach();
 
+//客户端数量
+const int cCount = 4000;
+//线程数量
+const int tCount = 4;
+//客户端数量
+TcpClient* clients[cCount];
+void sendThread(int id)
+{
 	Login login;
 	strcpy(login.userName, "xiaoming");
 	strcpy(login.passWord, "xiaoming");
-
-	const int cCount = 100;
-	TcpClient* clients[cCount];
+	int begin = (cCount / tCount) * (id - 1);
+	int end = (cCount / tCount) * id;
 	int a = sizeof(TcpClient);
-	for (int n = 0; n < cCount; n++)
+	for (int n = begin; n < end; n++)
 	{
 		if (!g_bRun)
 		{
-			return 0;
+			return;
 		}
 		clients[n] = new TcpClient();
 		clients[n]->InitSocket();
 	}
-	for (int n = 0; n < cCount; n++)
+	for (int n = begin; n < end; n++)
 	{
 		if (!g_bRun)
 		{
-			return 0;
+			return;
 		}
 		clients[n]->Connect((char*)"192.168.0.106", 1245);
+		printf("connect = %d\n", n);
 	}
 	while (true)
 	{
-		for (int n = 0; n < cCount; n++)
+		for (int n = begin; n < end; n++)
 		{
 			if (!g_bRun || -1 == clients[n]->SendData(&login))
 			{
-				return 0;
+				return;
 			}
-			/*clients[n]->OnRun();*/
+			clients[n]->OnRun();
 		}
 	}
-	for (int n = 0; n < cCount; n++)
+	for (int n = begin; n < end; n++)
 	{
 		clients[n]->Close();
 	}
+}
+int main()
+{
+	std::thread t1(cmdthread);
+	t1.detach();
+
+	//启动发送线程
+	for (int n = 0; n < tCount; n++)
+	{
+		std::thread t1(sendThread,n+1);
+		t1.detach();
+	}
+	while (g_bRun)
+		Sleep(1000);
+
 	return 0;
 }

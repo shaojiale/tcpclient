@@ -1,3 +1,5 @@
+# tcpclient V1.6
+# 加入多线程创建客户端和发送客户端消息
 # tcpclient V1.5
 # 加入接受缓冲区和消息缓冲区测试性能达到300Mbps
 # tcpclient V1.4

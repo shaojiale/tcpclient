@@ -46,7 +46,7 @@ public:
 		}
 		else
 		{
-			printf("建立Socket成功！\n");
+			//printf("建立Socket成功！\n");
 		}
 	}
 	//连接服务器
@@ -67,7 +67,7 @@ public:
 		}
 		else
 		{
-			printf("成功连接到服务器！\n");
+			//printf("成功连接到服务器！\n");
 		}
 		return ret;
 	}
