@@ -1,5 +1,6 @@
 enum CMD
 {
+	CMD_SIGNUP,
 	CMD_LOGIN,
 	CMD_LOGIN_RESULT,
 	CMD_LOGOUT,
@@ -18,6 +19,16 @@ struct Dataheader {
 	int dataLength;
 };
 
+struct Signup :public Dataheader {
+	Signup()
+	{
+		cmd = CMD_SIGNUP;
+		dataLength = sizeof(Signup);
+	}
+	char userName[32];
+	char passWord[32];
+	char data[28];
+};
 struct Login :public Dataheader {
 	Login()
 	{
@@ -26,7 +37,7 @@ struct Login :public Dataheader {
 	}
 	char userName[32];
 	char passWord[32];
-	char data[928];
+	char data[28];
 };
 
 struct LoginResult :public Dataheader {
@@ -37,7 +48,7 @@ struct LoginResult :public Dataheader {
 		result = 0;
 	}
 	int result;
-	char data[988];
+	char data[88];
 };
 
 struct Logout :public Dataheader {

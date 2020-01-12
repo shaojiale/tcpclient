@@ -1,5 +1,6 @@
 #include "tcpclient.hpp"
-
+#include "CELLTimestamp.hpp"
+#include <atomic>
 #include <thread>
 
 bool g_bRun = true;
@@ -23,44 +24,56 @@ void cmdthread()
 }
 
 //客户端数量
-const int cCount = 4000;
+const int cCount = 12;
 //线程数量
-const int tCount = 4;
+const int tCount = 6;
 //客户端数量
 TcpClient* clients[cCount];
+std::atomic_int sendCount = 0;
+std::atomic_int readyCount = 0;
+
 void sendThread(int id)
 {
-	Login login;
-	strcpy(login.userName, "xiaoming");
-	strcpy(login.passWord, "xiaoming");
+	printf("thread: %d start\n",id);
 	int begin = (cCount / tCount) * (id - 1);
 	int end = (cCount / tCount) * id;
-	int a = sizeof(TcpClient);
+
 	for (int n = begin; n < end; n++)
 	{
-		if (!g_bRun)
-		{
-			return;
-		}
 		clients[n] = new TcpClient();
-		clients[n]->InitSocket();
 	}
 	for (int n = begin; n < end; n++)
 	{
-		if (!g_bRun)
-		{
-			return;
-		}
 		clients[n]->Connect((char*)"192.168.0.106", 1245);
-		printf("connect = %d\n", n);
 	}
-	while (true)
+	printf("thread: %d connect = %d\n",id, end);
+
+	readyCount++;
+	while (readyCount < tCount)
+	{
+		std::chrono::milliseconds t(3000);
+		std::this_thread::sleep_for(t);
+	}
+
+	Login login[1];
+	for (int n = 0; n < 1; n++)
+	{
+		strcpy(login[n].userName, "xiaoming");
+		strcpy(login[n].passWord, "xiaoming");
+	}
+	const int nLen = sizeof(login);
+	CELLTimestamp timer;
+	while (g_bRun)
 	{
 		for (int n = begin; n < end; n++)
 		{
-			if (!g_bRun || -1 == clients[n]->SendData(&login))
+			if (timer.getElapsedSec() >= 1.0)
 			{
-				return;
+				if (SOCKET_ERROR != clients[n]->SendData(login, nLen))
+				{
+					sendCount++;
+				}
+				timer.update();
 			}
 			clients[n]->OnRun();
 		}
@@ -68,10 +81,13 @@ void sendThread(int id)
 	for (int n = begin; n < end; n++)
 	{
 		clients[n]->Close();
+		delete clients[n];
 	}
+	printf("thread: %d end\n", id);
 }
 int main()
 {
+	//启动UI线程
 	std::thread t1(cmdthread);
 	t1.detach();
 
@@ -81,8 +97,23 @@ int main()
 		std::thread t1(sendThread,n+1);
 		t1.detach();
 	}
-	while (g_bRun)
-		Sleep(1000);
 
+	//计数时间和数量
+	CELLTimestamp timer;
+
+	while (g_bRun)
+	{
+		auto t1 = timer.getElapsedSec();
+		if (t1 >= 1.0)
+		{
+			printf("Thread：%d Clients：%d Time: %lf send: %d \n", \
+				tCount, cCount, t1, (int)(sendCount / t1));
+			sendCount = 0;
+			timer.update();
+			Sleep(1);
+		}
+	}
+
+	printf("已退出。\n");
 	return 0;
 }

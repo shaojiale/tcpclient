@@ -1,12 +1,12 @@
 #ifndef _TCPSERVER_HPP
 #define _TCPSERVER_HPP
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
-#include<windows.h>
-#include <WinSock2.h>
-#pragma comment(lib, "Ws2_32.lib ")
+	#define WIN32_LEAN_AND_MEAN
+	#define _WINSOCK_DEPRECATED_NO_WARNINGS
+	#define _CRT_SECURE_NO_WARNINGS
+	#include<windows.h>
+	#include <WinSock2.h>
+	#pragma comment(lib, "Ws2_32.lib ")
 #endif  //end define _win32
 
 #include <stdio.h>
@@ -15,11 +15,13 @@ class TcpClient
 {
 	SOCKET _sock;
 	int _lastPos;
+	bool _isConnect;
 public:
 	TcpClient()
 	{
 		_sock = INVALID_SOCKET;
 		_lastPos = 0;
+		_isConnect = false;
 	}
 	virtual ~TcpClient()
 	{
@@ -67,6 +69,7 @@ public:
 		}
 		else
 		{
+			_isConnect = true;
 			//printf("成功连接到服务器！\n");
 		}
 		return ret;
@@ -80,25 +83,29 @@ public:
 			WSACleanup();
 			_sock = INVALID_SOCKET;
 		}
+		_isConnect = false;
 	}
 	//缓冲区最小单元大小
-#define RECV_BUFF_SIZE 10240
+#ifndef RECV_BUFF_SZIE
+#define RECV_BUFF_SIZE 10240*5
+#endif // !RECV_BUFF_SZIE
 	//接受缓冲区
-	char _szRecv[RECV_BUFF_SIZE] = {};
+	//char _szRecv[RECV_BUFF_SIZE] = {};
 	//第二缓冲区 消息缓冲区
-	char _szMsgBuf[RECV_BUFF_SIZE * 10] = {};
+	char _szMsgBuf[RECV_BUFF_SIZE] = {};
 	//接受数据 处理粘包拆包
 	int RecvData(SOCKET _sock)
 	{
 		//接受缓存
-		int nLen = (int)recv(_sock, _szRecv, RECV_BUFF_SIZE, 0);
+		char* _szRecv = _szMsgBuf + _lastPos;
+		int nLen = (int)recv(_sock, _szRecv, (RECV_BUFF_SIZE) - _lastPos, 0);
 		if (nLen <= 0)
 		{
 				printf("服务器已经退出，任务结束\n");
 				return -1;//跳出接收循环
 		}
 		//将收取到的数据拷贝到消息缓冲区
-		memcpy(_szMsgBuf+ _lastPos, _szRecv, nLen);
+		//memcpy(_szMsgBuf+ _lastPos, _szRecv, nLen);
 		_lastPos += nLen;
 		while (_lastPos >= sizeof(Dataheader))
 		{
@@ -131,20 +138,17 @@ public:
 		{
 		case CMD_LOGIN_RESULT:
 		{
-			//LoginResult* ret = (LoginResult*)header;
-			//printf("收到服务端消息：CMD_LOGIN_RESULT，CMD_LOGIN 数据长度：%d\n", ret->dataLength);
+			LoginResult* ret = (LoginResult*)header;
+			printf("<socket=%d>收到服务端消息：CMD_LOGIN_RESULT,数据长度：%d\n",\
+				_sock, ret->dataLength);
 			break;
 		}
 		case CMD_LOGOUT_RESULT:
 		{
-			//LogoutResult* ret = (LogoutResult*)header;
-			//printf("收到服务端消息：CMD_LOGOUT_RESULT，CMD_LOGIN 数据长度：%d\n", ret->dataLength);
 			break;
 		}
 		case CMD_NEW_USER_JOIN:
 		{
-			//NewUserJoin* ret = (NewUserJoin*)header;
-			//printf("收到服务端消息：CMD_NEW_USER_JOIN，CMD_LOGIN 数据长度：%d\n", ret->dataLength);
 			break;
 		}
 		case CMD_ERROR:
@@ -168,10 +172,11 @@ public:
 			FD_ZERO(&fdRead);
 			FD_SET(_sock, &fdRead);
 			timeval timeout = { 0,0 };
-			int ret = select(_sock + 1, &fdRead, NULL, NULL, &timeout);
+			int ret = select(_sock + 1, &fdRead, 0, 0, &timeout);
 			if (ret < 0)
 			{
 				printf("select任务已经退出，任务结束\n");
+				Close();
 				return false;
 			}
 			if (FD_ISSET(_sock, &fdRead))
@@ -180,6 +185,7 @@ public:
 				if (-1 == RecvData(_sock))
 				{
 					printf("服务端任务已经退出，任务结束\n");
+					Close();
 					return false;
 				}
 			}
@@ -190,17 +196,25 @@ public:
 	//socket有效
 	bool isRun()
 	{ 
-		return _sock != INVALID_SOCKET;
+		return _sock != INVALID_SOCKET && _isConnect;
 	}
 
 	//发送数据
-	int SendData(Dataheader* header)
+	int SendData(Dataheader* header,int length)
 	{
+		int ret = SOCKET_ERROR;
 		if (isRun() && header)
 		{
-			return send(_sock, (const char*)header, header->dataLength, 0);
+			ret = send(_sock, (const char*)header, length, 0);
+			if (SOCKET_ERROR == ret)
+			{
+				Close();
+			}
+			else
+			{
+			}
 		}
-		return SOCKET_ERROR;
+		return ret;
 	}
 private:
 
